@@ -25,7 +25,7 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
     SmoothingTimeInterval = 10; % [min]     (This is the moving average time interval used in "movmean_time" function)
 
     % model parameters:
-    nu = 1;         % transition M_1->0 dependency on occupancy (M_1->0_n)
+    nu = 1;         % transition M_1->0 dependency on occupancy: M_1->0_n = M_1->0_0*((1/kappa)^nu*n)
     N = 4;          % number of binding sites    
     alpha = 0.5;    % alpha = k_on/k_off_1 = [A]/K_d_1  
     kappa = 1000;   % kappa = k_off_0/k_off_1          
