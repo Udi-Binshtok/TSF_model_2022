@@ -490,3 +490,42 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
     end
 
 end
+
+function [smoothed] = movmean_time(occ,t,window_dur)
+% MOVMEAN_TIME function applies a moving average filter over a time interval rather than a fixed data-points window.
+% 
+% From the Gillespi algorithem, time intervals between two calculated points is not fixed. Hence, this function
+% takes the average of data points over a time interval, rather than over a range of fixed time-points. 
+% 
+% Note that the average of occupancy(i) is taken over the interval [t(i), t(i) + time window + dt], 
+% where dt accounts for gaps between t(i) + time window and its nearest simulated time point
+%
+%   Inputs:
+%   occ         simulated occupancy (vector)
+%   t           time series (vector; corresponding to simulated occupancy) 
+%   window_dur  smoothing time window (scalar; same time units as t)
+%   
+%   Output:
+%   smoothed    smoothed occupancy (vector)
+
+    smoothed = [];      % output variable
+    t_diff = diff(t);   % t_diff = [t(2)-t(1) , t(3)-t(2) , ... , t(end)-t(end-1)] 
+    
+    for ind = 1:length(t_diff)
+        window = t_diff(ind);   % time difference between event ind and "ind-1"
+        loc = ind + 1;
+        while window < window_dur 
+            if loc < length(occ)
+                window = window + t_diff(loc);
+                loc = loc + 1;
+            else
+                break
+            end
+        end
+        current = occ(ind:(loc-1));
+        weights = t_diff(ind:(loc-1))./window;
+        smoothed = [smoothed, current*(weights')];
+    end
+    
+    smoothed=[smoothed, occ(end)];
+end
