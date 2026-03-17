@@ -74,7 +74,7 @@ function [params,output] = TSF_Gillespie(parameter2test,OutputFolder,OutputName,
                 % factor      = 0.5; % Manuscript Figure 4 "mutation" condition (Uncomment to plot)
                 x_microns   = 5:5:35;
                 x_parameter = 30;
-                translation_parameter = 0.2;
+                translation_parameter = 0;
                 alpha = factor*(1./(1+(x_microns./x_parameter).^2)) + translation_parameter;
             end
 
