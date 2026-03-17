@@ -1,8 +1,9 @@
-function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plot_dynamics,plot_histogram,plot_analysis)
+function [params,output] = TSF_Gillespie(parameter2test,OutputFolder,OutputName,save_output,plot_dynamics,plot_histogram,plot_analysis,figure_4)
 % TSF_GILLESPIE Simulates transcriptional bursting from the TSF model using the Gillespie method. 
-% The simulation calculates the dynamics of the state of the system (Closed or Open) and the occupancy (number of bounded transcriptional binding sites by transcriptional factors).  
+% The simulation calculates the dynamics of the system's state (Closed or Open) and occupancy (number of transcriptional binding sites bounded by transcriptional factors).  
 %
 %   Inputs:
+%   parameter2test  which parameter is tested
 %   OutputFolder    to which folder the data and figures will be saved 
 %   OutputName      under what name the data and figures will be saved
 %   save_output     if 1 (or 0) the data and figures will (or will not) be saved  
@@ -10,32 +11,54 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
 %                   (NOTE: to plot the original occupancy, before smoothing, see section "plots of individual iteration" below) 
 %   plot_histogram  if 1 (or 0) the probabilities histogram will (or will not) be ploted
 %   plot_analysis   if 1 (or 0) the meta-analysis will (or will not) be ploted
-%   
+%   figure_4        if 1 (or 0) and test parameter is alpha, the analysis is for alpha range that is derived from the distance range (See section "settings" below)    
+%                   (Note: to change the condition from "WT" to "mutation", set the factor to 0.5 - See section "settings" below)
+%
 %   Outputs:
 %   params          data structure containing the parameters and initial conditions of the simulation
 %   output          data structure containing the output results from the simulation
+%
+%   For example, type the following in the command window to plot only figure 4 "WT" codition, without saving anything:
+%   TSF_Gillespie('alpha',[],[],0,0,0,1,1); % (press enter)   
     
     
     
+    %% Inputs
+    
+    arguments
+        parameter2test  {mustBeMember(parameter2test, ...
+                        ['N','alpha', 'beta', 'gamma', 'delta'])}   = 'alpha';          % which parameter is tested (See also settings and switch function below);
+        OutputFolder    string                                      = pwd;              % Must be a string
+        OutputName      string                                      = 'TSF_Gillespie';  % Must be a string
+        save_output     {mustBeInteger, ...
+                        mustBeMember(save_output, [0, 1])}          = 1                 % Must be an integer, either 0 or 1
+        plot_dynamics   {mustBeInteger, ...
+                        mustBeMember(plot_dynamics, [0, 1])}        = 1                 % Must be an integer, either 0 or 1
+        plot_histogram  {mustBeInteger, ...
+                        mustBeMember(plot_histogram, [0, 1])}       = 1                 % Must be an integer, either 0 or 1
+        plot_analysis   {mustBeInteger, ...
+                        mustBeMember(plot_analysis, [0, 1])}        = 1                 % Must be an integer, either 0 or 1
+        figure_4        {mustBeInteger, ...
+                        mustBeMember(figure_4, [0, 1])}             = 0                 % Must be an integer, either 0 or 1
+    end
+
+
     %% settings
     
     % simulation time parameters:
-    Total_time = 500*60;        % [min]
-    k_off_1 = 1/4;              % [1/min]   (Time is normalized by koff_active. See also kinetic parameters below)
-    SmoothingTimeInterval = 10; % [min]     (This is the moving average time interval used in "movmean_time" function)
+    Total_time              = 500*60;   % [min]
+    k_off_1                 = 1/4;      % [1/min]   (Time is normalized by koff_active. See also kinetic parameters below)
+    SmoothingTimeInterval   = 10;       % [min]     (This is the moving average time interval used in "movmean_time" function)
 
     % model parameters:
-    nu = 1;         % transition M_1->0 dependency on occupancy: M_1->0_n = M_1->0_0*((1/kappa)^nu*n)
+    nu = 1;         % transition M_1->0 dependency on occupancy: M_1->0_n = M_1->0_0*((1/beta)^nu*n)
     N = 4;          % number of binding sites    
     alpha = 0.5;    % alpha = k_on/k_off_1 = [A]/K_d_1  
-    kappa = 1000;   % kappa = k_off_0/k_off_1          
-    mu = 1/5;       % mu    = M_0->1/M_1->0_0           
-    sigma = 0.5;    % sigma = M_1->0,0/k_off_1         
-    
+    beta = 1000;    % beta  = k_off_0/k_off_1          
+    gamma = 0.2;    % gamma = M_0->1/M_1->0_0           
+    delta = 0.5;    % delta = M_1->0,0/k_off_1         
     
     % test parameter: 
-    parameter2test = 'alpha';  % which parameter is tested (See also switch below);
-    
     switch parameter2test
         case 'N'
             factor = 1;
@@ -45,51 +68,54 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
         
         case 'alpha' 
             alpha = 0.02:0.06:2;
-%             % Manuscript Figure 4 (Uncomment to plot; See also section "plot analysis" below)  
-%             factor = 1;
-% %             factor = 0.5; % Manuscript Figure 4C-C' (Uncomment to plot)
-%             x_microns = 5:5:35;
-%             x_factor = 30;
-%             alpha = factor*(1./(1+(x_microns./x_factor).^2));
+            if figure_4
+                % Manuscript Figure 4 (See also section "plot analysis" below)  
+                factor      = 1;
+                % factor      = 0.5; % Manuscript Figure 4 "mutation" condition (Uncomment to plot)
+                x_microns   = 5:5:35;
+                x_parameter = 30;
+                translation_parameter = 0.2;
+                alpha = factor*(1./(1+(x_microns./x_parameter).^2)) + translation_parameter;
+            end
 
             Test_parameter = alpha;
             num_of_iter = length(alpha);
 
-        case 'kappa'
+        case 'beta'
             factor = 1;
-            kappa = factor*[10 100];
+            beta = factor*[10 100];
 
-            Test_parameter = kappa;
-            num_of_iter = length(kappa);
+            Test_parameter = beta;
+            num_of_iter = length(beta);
         
         case 'mu'
             factor = 1;
-            mu = factor*[0.1 1];
+            gamma = factor*[0.1 1];
 
-            Test_parameter = mu;
-            num_of_iter = length(mu);
+            Test_parameter = gamma;
+            num_of_iter = length(gamma);
         
         case 'sigma'
             factor = 1;
-            sigma = factor*[0.1 1];
+            delta = factor*[0.1 1];
 
-            Test_parameter = sigma;
-            num_of_iter = length(sigma);
+            Test_parameter = delta;
+            num_of_iter = length(delta);
     end
     
     % rearrange model parameters (as vectors 1xnum_of_iter)
-    N       = N.*ones(1,num_of_iter);            
-    alpha   = alpha.*ones(1,num_of_iter);     
-    kappa   = kappa.*ones(1,num_of_iter);   
-    mu      = mu.*ones(1,num_of_iter);        
-    sigma   = sigma.*ones(1,num_of_iter);  
+    N       = N     .*ones(1,num_of_iter);            
+    alpha   = alpha .*ones(1,num_of_iter);     
+    beta    = beta  .*ones(1,num_of_iter);   
+    gamma   = gamma .*ones(1,num_of_iter);        
+    delta   = delta .*ones(1,num_of_iter);  
     
     
     % kinetic parameters (as a function of the model parameters):
-    k_on        = alpha.*k_off_1;   % association rate of TFs to a single binding site
-    k_off_0     = kappa.*k_off_1;   % disassociation rate of TFs from a single binding site, at the closed system state
-    M_1to0_0    = sigma.*k_off_1;   % transition rate of the system from open to closed state, with zero occupancy 
-    M_0to1      = mu   .*M_1to0_0;  % transition rate of the system from closed to open state
+    k_on        = alpha .*k_off_1;   % association rate of TFs to a single binding site
+    k_off_0     = beta  .*k_off_1;   % disassociation rate of TFs from a single binding site, at the closed system state
+    M_1to0_0    = delta .*k_off_1;   % transition rate of the system from open to closed state, with zero occupancy 
+    M_0to1      = gamma .*M_1to0_0;  % transition rate of the system from closed to open state
     
     % transcription threshold:
     BurstOccupancyThreshold = 1.*ones(1,num_of_iter); % number of occupied binding sites considered as transcriptional_ON  
@@ -141,7 +167,7 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
             K_off_n_0   = n*k_off_0(i);                     % unbinding rate of a single transcriptional factor from multiple binding sites, in the closed system state  
             K_off_n_1   = n*k_off_1;                        % nbinding rate of a single transcriptional factor from multiple binding sites, in the open system state
             M_0to1_     = M_0to1(i);                        % Note: M_0->1 is constant
-            M_1to0_n_   = M_1to0_0(i)/(kappa(i)^(nu*n));    % transition rate from open to closed state depends on occupancy
+            M_1to0_n_   = M_1to0_0(i)/(beta(i)^(nu*n));    % transition rate from open to closed state depends on occupancy
             
             % calculate probabilities:
             rate_bind = K_on_n;
@@ -259,7 +285,7 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
             % Separated (closed and open states) probabilities histogram plot 
             F_histogram(i).fig = figure;
             h = bar(0:N(i),[occ_prob_off ; occ_prob_on]');
-            title(['N = ' num2str(N(i)) '\alpha = ' num2str(alpha(i)) '  \kappa = ' num2str(kappa(i)) '  \mu = ' num2str(mu(i)) '  \sigma = ' num2str(sigma(i))])
+            title(['N = ' num2str(N(i)) '\alpha = ' num2str(alpha(i)) '  \kappa = ' num2str(beta(i)) '  \mu = ' num2str(gamma(i)) '  \sigma = ' num2str(delta(i))])
             xlabel('Occupancy','fontsize',font_size_titles)
             ylabel('Occurence','fontsize',font_size_titles)
             ylim([0 1])
@@ -365,13 +391,16 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
 %         ylabel('time [min]','fontsize',font_size_titles);
         ax = gca; 
         ax.FontSize = font_size_ticks;
-%         % Manuscript Figure 4 (Uncomment to plot)
-%         errorbar(((factor./Test_parameter-1).^0.5).*x_factor,ON_time,ON_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15) % Figure 4 (Uncomment to plot)  
-%         xlim([0 60])
-%         xticks(5:5:60)
-%         ylim([0 100])
-%         yticks(0:10:100)
-%         xlabel('\mum from distal end','fontsize',font_size_titles);
+        if figure_4
+            % Manuscript Figure 4 (See "settings" switch function above)
+            errorbar(((factor./(Test_parameter-translation_parameter)-1).^0.5).*x_parameter,ON_time,ON_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15) % Figure 4 (Uncomment to plot)  
+            xlim([0 60])
+            xticks(5:5:60)
+            y_max = ceil(max([100,1.05*max(ON_time+ON_time_SEM)]));
+            ylim([0 y_max])
+            yticks(0:10:y_max)
+            xlabel('\mum from distal end','fontsize',font_size_titles);
+        end
 
 
         % Plot OFF-time dependence on test parameter
@@ -384,13 +413,16 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
 %         ylabel('Time (\tau)','fontsize',font_size_titles);
         ax = gca; 
         ax.FontSize = font_size_ticks; 
-%         % Manuscript Figure 4 (Uncomment to plot)
-%         errorbar(((factor./Test_parameter-1).^0.5).*x_factor,OFF_time,OFF_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15)  
-%         xlim([0 60])
-%         xticks(5:5:60)
-%         ylim([0 100])
-%         yticks(0:10:100)
-%         xlabel('\mum from distal end','fontsize',font_size_titles);
+        if figure_4
+            % Manuscript Figure 4 (See "settings" switch function above)
+            errorbar(((factor./(Test_parameter-translation_parameter)-1).^0.5).*x_parameter,OFF_time,OFF_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15)  
+            xlim([0 60])
+            xticks(5:5:60)
+            y_max = ceil(max([100,1.05*max(OFF_time+OFF_time_SEM)]));
+            ylim([0 y_max])
+            yticks(0:10:y_max)
+            xlabel('\mum from distal end','fontsize',font_size_titles);
+        end
         
 
 %         % uncomment to plot bursts amplitudes:
@@ -426,9 +458,9 @@ function [params,output] = TSF_Gillespie(OutputFolder,OutputName,save_output,plo
     params.nu = nu;
     params.N = N;
     params.alpha = alpha;
-    params.kappa = kappa;
-    params.mu = mu;
-    params.sigma = sigma;
+    params.kappa = beta;
+    params.mu = gamma;
+    params.sigma = delta;
 
     params.Test_parameter = Test_parameter;
 
