@@ -75,7 +75,7 @@ function [params,output] = TSF_Gillespie(parameter2test,OutputFolder,OutputName,
                 x_microns   = 5:5:35;
                 x_parameter = 30;
                 translation_parameter = 0;
-                alpha = factor*(1./(1+(x_microns./x_parameter).^2)) + translation_parameter;
+                alpha = factor*((1./(1+(x_microns./x_parameter).^2)) + translation_parameter);
             end
 
             Test_parameter = alpha;
@@ -393,7 +393,8 @@ function [params,output] = TSF_Gillespie(parameter2test,OutputFolder,OutputName,
         ax.FontSize = font_size_ticks;
         if figure_4
             % Manuscript Figure 4 (See "settings" switch function above)
-            errorbar(((factor./(Test_parameter-translation_parameter)-1).^0.5).*x_parameter,ON_time,ON_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15) % Figure 4 (Uncomment to plot)  
+            x = ((1./(Test_parameter/factor-translation_parameter)-1).^0.5).*x_parameter;
+            errorbar(x,ON_time,ON_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15) % Figure 4 (Uncomment to plot)  
             xlim([0 60])
             xticks(5:5:60)
             y_max = ceil(max([100,1.05*max(ON_time+ON_time_SEM)]));
@@ -415,7 +416,8 @@ function [params,output] = TSF_Gillespie(parameter2test,OutputFolder,OutputName,
         ax.FontSize = font_size_ticks; 
         if figure_4
             % Manuscript Figure 4 (See "settings" switch function above)
-            errorbar(((factor./(Test_parameter-translation_parameter)-1).^0.5).*x_parameter,OFF_time,OFF_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15)  
+            x = ((1./(Test_parameter/factor-translation_parameter)-1).^0.5).*x_parameter;
+            errorbar(x,OFF_time,OFF_time_SEM,'.','MarkerSize',60,'LineWidth',5,'CapSize',15)  
             xlim([0 60])
             xticks(5:5:60)
             y_max = ceil(max([100,1.05*max(OFF_time+OFF_time_SEM)]));
